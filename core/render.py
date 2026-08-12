@@ -3,7 +3,7 @@
 设计要点：
 - 复用一个长驻 browser / 多个 context，避免每次截图都重启 Chromium（启动 ~1s，截图 ~50ms）。
 - 资源（字体、图标）走 file:// 本地路径，零外部网络依赖。
-- HTML 模板用 jinja2 渲染数据，截图走 `page.screenshot(full_page=True)`。
+- HTML 模板用 jinja2 渲染数据，截图高度按页面实际内容裁剪。
 - 跨平台：Windows 用 `uv run` 启动 AstrBot 时，playwright 已装在 .venv；Linux 需额外装系统依赖。
 
 运行时使用 Playwright Async API，避免在 AstrBot 的 asyncio 事件循环中调用 Sync API。
@@ -88,7 +88,7 @@ class Renderer:
         return tmpl.render(**ctx)
 
     async def _screenshot(self, html: str, output_path: str, width: int) -> str:
-        """异步：set_content + full_page 截图。"""
+        """异步：set_content 后按实际内容高度截图。"""
         if self._context is None:
             raise RuntimeError("渲染器未启动，请先调用 start()")
 
@@ -119,6 +119,12 @@ class Renderer:
             await page.screenshot(
                 path=output_path,
                 full_page=False,
+                clip={
+                    "x": 0,
+                    "y": 0,
+                    "width": width,
+                    "height": max(1, int(content_height)),
+                },
                 omit_background=False,
             )
             return output_path
