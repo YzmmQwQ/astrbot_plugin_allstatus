@@ -1,0 +1,34 @@
+{
+  "monitor": {
+    "description": "本机状态监控",
+    "type": "object",
+    "obvious_hint": true,
+    "hint": "本机系统资源监控相关设置",
+    "items": {
+      "cpu_cores": {
+        "description": "CPU 大小核配置",
+        "type": "string",
+        "hint": "格式 大核数:小核数,如 8:12。留空则显示 物理核C/线程T 形式",
+        "default": ""
+      },
+      "memory_info": {
+        "description": "内存信息",
+        "type": "string",
+        "hint": "自定义内存标签,如 DDR5 32GBx2通道 5600MT/s。留空则只显示总量",
+        "default": ""
+      },
+      "disk_filter": {
+        "description": "磁盘过滤关键词",
+        "type": "list",
+        "hint": "挂载点/设备名包含这些关键词的磁盘将被忽略(如 boot,efi)。留空则显示全部",
+        "default": ["boot", "efi", "swap"]
+      },
+      "disk_show_only": {
+        "description": "磁盘只显示关键词",
+        "type": "list",
+        "hint": "若填写,则只显示挂载点/设备名包含这些关键词的磁盘。留空显示全部(优先级高于disk_filter)",
+        "default": []
+      }
+    }
+  }
+}

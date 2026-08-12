@@ -1,0 +1,6 @@
+name: astrbot_plugin_allstatus
+display_name: 全状态聚合
+desc: 本机状态、MC服务器状态、网站公告 三合一聚合插件
+version: v0.1.0
+author: YzmmQwQ
+repo: "https://github.com/YzmmQwQ/astrbot_plugin_allstatus"
