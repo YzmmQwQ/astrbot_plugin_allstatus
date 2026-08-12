@@ -9,12 +9,14 @@
 - 渲染失败自动回退纯文本
 """
 import os
+import datetime
 
 from astrbot.api import logger
 from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.star import Context, Star, register
 
 from .core.collector import get_status_data, format_status_text
+from .core.mcstatus import format_server_status, query_server
 from .core.render import get_renderer
 
 try:
@@ -138,3 +140,55 @@ class AllStatusPlugin(Star):
 
         # 回退：纯文本
         yield event.plain_result(format_status_text(data))
+
+    @filter.command("mcs")
+    async def mcs(self, event: AstrMessageEvent, server_addr: str = ""):
+        """查询 Minecraft Java 服务器状态。"""
+        event.stop_event()
+        if not server_addr.strip():
+            yield event.plain_result("用法：/mcs <服务器地址>[:端口]")
+            return
+
+        try:
+            data = await query_server(server_addr)
+        except Exception as e:
+            logger.warning(f"Minecraft 服务器查询失败 ({server_addr.strip()}): {e}")
+            data = {
+                "address": server_addr.strip(),
+                "motd": "Minecraft Server",
+                "online_state": False,
+                "error": "无法连接服务器，请检查地址、端口和服务器是否在线。",
+            }
+        else:
+            data["online_state"] = True
+
+        if data["online_state"]:
+            data["player_percent"] = min(
+                100,
+                round(data["online"] / max(data["maximum"], 1) * 100, 1),
+            )
+            data["player_text"] = ", ".join(data["players"]) or "暂无玩家在线"
+        render_data = {
+            "server": data,
+            "generated_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        try:
+            out = self._output_path().replace("allstatus_status.png", "allstatus_mcs.png")
+            await self._renderer.render(
+                template_name="mcstatus_template.html",
+                data=render_data,
+                output_path=out,
+                width=760,
+            )
+            if os.path.exists(out):
+                yield event.image_result(out)
+                return
+        except Exception as e:
+            logger.error(f"Minecraft 状态图片渲染失败，回退纯文本: {e}")
+
+        if data["online_state"]:
+            yield event.plain_result(format_server_status(data))
+        else:
+            yield event.plain_result(
+                f"无法连接 Minecraft 服务器：{data['address']}\n{data['error']}"
+            )
