@@ -8,7 +8,7 @@
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root { --bg:#fafafa; --fill:#ebebeb; --stroke:#d6d6d6; --fg:#0a0a0a; --fg-secondary:#333333; --muted:#707070; --green:#00d992; --red:#ff4757; }
-body { font-family:'IBM Plex Sans','MiSans',sans-serif; background:var(--bg); color:var(--fg); line-height:1.25; -webkit-font-smoothing:antialiased; }
+body { font-family:'IBM Plex Sans','MiSans',sans-serif; font-weight:500; background:var(--bg); color:var(--fg); line-height:1.25; -webkit-font-smoothing:antialiased; }
 .dots { position:fixed; inset:60px 0 0; background-image:radial-gradient(circle,var(--muted) 1px,transparent 1px); background-size:16px 16px; opacity:.4; pointer-events:none; }
 .top { position:relative; z-index:1; background:var(--bg); border-bottom:1px solid var(--stroke); }
 .top-inner,.container { width:760px; margin:0 auto; }
@@ -42,7 +42,7 @@ body { font-family:'IBM Plex Sans','MiSans',sans-serif; background:var(--bg); co
 </style>
 </head>
 <body style="--status-color: {% if server.online_state %}var(--green){% else %}var(--red){% endif %}">
-<div class="top"><div class="top-inner"><span class="title">MINECRAFT STATUS</span><span class="online">{{ 'ONLINE' if server.online_state else 'OFFLINE' }}</span></div></div>
+<div class="top"><div class="top-inner"><span class="title">STATUS.RISHU.CFD</span><span class="online">{{ 'ONLINE' if server.online_state else 'OFFLINE' }}</span></div></div>
 <div class="dots"></div>
 <main class="container">
   <div class="section">SERVER</div>

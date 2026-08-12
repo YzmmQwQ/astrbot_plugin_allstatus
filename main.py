@@ -152,7 +152,10 @@ class AllStatusPlugin(Star):
         try:
             data = await query_server(server_addr)
         except Exception as e:
-            logger.warning(f"Minecraft 服务器查询失败 ({server_addr.strip()}): {e}")
+            logger.warning(
+                f"Minecraft 服务器查询失败 ({server_addr.strip()}): "
+                f"{type(e).__name__}: {e!r}"
+            )
             data = {
                 "address": server_addr.strip(),
                 "motd": "Minecraft Server",

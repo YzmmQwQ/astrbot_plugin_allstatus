@@ -6,6 +6,9 @@ import re
 from typing import Any
 
 from mcstatus import JavaServer
+from mcstatus._net.address import Address
+from mcstatus._protocol.io.connection import TCPAsyncSocketConnection
+from mcstatus._protocol.java_client import AsyncJavaClient
 
 
 def _clean_motd(value: Any) -> str:
@@ -21,13 +24,26 @@ async def query_server(address: str, timeout: float = 3) -> dict[str, Any]:
         raise ValueError("服务器地址不能为空")
 
     server = await JavaServer.async_lookup(address, timeout=timeout)
-    status = await server.async_status()
+
+    # SRV records may point to a proxy that routes requests by the hostname in
+    # the Java handshake. Connect to the SRV target, but retain the hostname
+    # the user entered in that handshake.
+    handshake_address = Address.parse_address(
+        address,
+        default_port=server.address.port,
+    )
+    handshake_address = Address(handshake_address.host, server.address.port)
+    async with TCPAsyncSocketConnection(server.address, timeout) as connection:
+        client = AsyncJavaClient(connection, address=handshake_address, version=47)
+        await client.handshake()
+        status = await client.read_status()
     description = getattr(status, "description", "未知 MOTD")
     motd = _clean_motd(description)
     players = getattr(status.players, "sample", None) or []
 
     return {
         "address": address,
+        "resolved_address": f"{server.address.host}:{server.address.port}",
         "motd": motd.replace("\n", " ").strip() or "未知 MOTD",
         "version": getattr(status.version, "name", "未知"),
         "protocol": getattr(status.version, "protocol", "未知"),
