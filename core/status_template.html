@@ -177,9 +177,11 @@ body {
   display: grid;
   gap: 4px;
   margin-top: 12px;
+  grid-auto-rows: 14px;
 }
 .cpu-core {
-  aspect-ratio: 1;
+  width: 14px;
+  height: 14px;
   background: #EFF2F5;
 }
 .cpu-core.level-1 { background: #ACEEBB; }
@@ -424,7 +426,7 @@ body {
       <div class="progress-bar" style="margin-top:0">
         <div class="progress-fill {% if disk.percent >= 90 %}danger{% elif disk.percent >= 70 %}warning{% endif %}" style="width: {{ disk.percent }}%"></div>
       </div>
-      <div class="disk-detail"><span class="disk-usage">{{ disk.used }}</span> GB / <span class="disk-usage">{{ disk.total }}</span> GB</div>
+      <div class="disk-detail"><span class="disk-usage">{{ disk.used }} GB / {{ disk.total }} GB</span></div>
     </div>
     {% else %}
     <div class="muted">没有可用的磁盘信息</div>
