@@ -3,12 +3,9 @@
 <head>
 <meta charset="utf-8">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-
 @font-face {
   font-family: 'MiSans';
-  src: url('{{ ASSETS }}/fonts/MiSansVF.woff2') format('woff2-variations'),
-       url('{{ ASSETS }}/fonts/MiSans VF.ttf') format('truetype-variations');
+  src: url('{{ ASSETS }}/fonts/MiSans VF.ttf') format('truetype-variations');
   font-weight: 100 900;
   font-style: normal;
 }
@@ -34,7 +31,7 @@
 }
 
 body {
-  font-family: 'IBM Plex Sans', 'MiSans', sans-serif;
+  font-family: 'MiSans', sans-serif;
   font-weight: 500;
   background: var(--bg);
   color: var(--fg);
@@ -79,7 +76,7 @@ body {
   justify-content: space-between;
 }
 .site-title {
-  font-family: 'IBM Plex Sans', sans-serif;
+  font-family: 'MiSans', sans-serif;
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -90,7 +87,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  font-family: 'IBM Plex Sans', 'MiSans', sans-serif;
+  font-family: 'MiSans', sans-serif;
   font-size: 11px;
   font-weight: 500;
   color: var(--accent-positive);
@@ -151,14 +148,14 @@ body {
 }
 
 .big-value {
-  font-family: 'MiSans', 'IBM Plex Sans', sans-serif;
+  font-family: 'MiSans', sans-serif;
   font-size: 1.75rem;
   font-weight: 700;
   color: var(--fg);
   margin: 12px 0 0;
 }
 .mem-value {
-  font-family: 'MiSans', 'IBM Plex Sans', sans-serif;
+  font-family: 'MiSans', sans-serif;
   font-size: 1.3rem;
   font-weight: 700;
   color: var(--fg);
@@ -231,7 +228,7 @@ body {
 }
 .uptime-item { text-align: center; }
 .uptime-value {
-  font-family: 'MiSans', 'IBM Plex Sans', sans-serif;
+  font-family: 'MiSans', sans-serif;
   font-size: 1.25rem;
   font-weight: 600;
   color: var(--fg);
@@ -258,7 +255,7 @@ body {
 .system-item .label { margin-bottom: 8px; }
 .system-item b {
   display: block;
-  font-family: 'MiSans', 'IBM Plex Sans', sans-serif;
+  font-family: 'MiSans', sans-serif;
   font-size: 15px;
   font-weight: 600;
   color: var(--fg);
@@ -286,17 +283,17 @@ body {
   font-size: 10px;
   font-weight: 400;
   color: var(--fg-tertiary);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'MiSans', sans-serif;
 }
 .disk-pct {
-  font-family: 'MiSans', 'IBM Plex Sans', sans-serif;
+  font-family: 'MiSans', sans-serif;
   font-size: 13px;
 }
 .disk-detail {
   margin-top: 8px;
   font-size: 11px;
   color: var(--fg-tertiary);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'MiSans', sans-serif;
 }
 
 .muted { color: var(--fg-tertiary); font-size: 13px; }
@@ -409,24 +406,6 @@ body {
       </div>
     </div>
   </div>
-
-  {% if cpu.temperature is not none %}
-  <div class="section-label">CPU INFO</div>
-  <div class="system-grid">
-    <div class="system-item">
-      <div class="label">CPU 温度</div>
-      <b>{{ cpu.temperature }}°C</b>
-    </div>
-    <div class="system-item">
-      <div class="label">当前主频</div>
-      <b>{{ cpu.frequency }} GHz</b>
-    </div>
-    <div class="system-item">
-      <div class="label">型号</div>
-      <b>{{ cpu.name }}</b>
-    </div>
-  </div>
-  {% endif %}
 
   <div class="section-label">STORAGE</div>
   <div class="card">
