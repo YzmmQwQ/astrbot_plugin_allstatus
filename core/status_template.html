@@ -180,6 +180,10 @@ body {
 .cpu-grid {
   display: grid;
   gap: 4px;
+  flex: 1;
+  width: min(100%, var(--cpu-grid-width));
+  margin-inline: auto;
+  align-content: center;
 }
 .cpu-core {
   aspect-ratio: 1;
@@ -237,28 +241,6 @@ body {
   color: var(--fg-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-}
-
-/* 系统三栏 */
-.system-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-bottom: 0;
-}
-.system-item {
-  padding: 14px 16px;
-  background: var(--bg);
-  border: 1px solid var(--stroke);
-}
-.system-item .label { margin-bottom: 8px; }
-.system-item b {
-  display: block;
-  font-family: 'IBM Plex Sans', 'MiSans', sans-serif;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--fg);
-  word-break: break-all;
 }
 
 /* 磁盘 */
@@ -349,7 +331,7 @@ body {
         <div class="progress-fill {% if cpu.percent >= 90 %}danger{% elif cpu.percent >= 70 %}warning{% endif %}" style="width: {{ cpu.percent }}%"></div>
       </div>
       {% if cpu.cores_load %}
-      <div class="cpu-grid" style="grid-template-columns: repeat({{ cpu.per_row }}, 1fr)">
+      <div class="cpu-grid" style="--cpu-grid-width: calc({{ cpu.per_row }} * 32px + ({{ cpu.per_row }} - 1) * 4px); grid-template-columns: repeat({{ cpu.per_row }}, minmax(0, 1fr))">
         {% for load in cpu.cores_load %}
         <div class="cpu-core {% if load >= 61 %}level-4{% elif load >= 41 %}level-3{% elif load >= 21 %}level-2{% elif load >= 2 %}level-1{% endif %}"></div>
         {% endfor %}

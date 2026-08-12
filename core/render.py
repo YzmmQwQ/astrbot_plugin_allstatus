@@ -2,7 +2,7 @@
 
 设计要点：
 - 复用一个长驻 browser / 多个 context，避免每次截图都重启 Chromium（启动 ~1s，截图 ~50ms）。
-- 资源（字体、图标）走 file:// 本地路径，零外部网络依赖。
+- 字体由模板中的 CDN 样式表加载。
 - HTML 模板用 jinja2 渲染数据，截图高度按页面实际内容裁剪。
 - 跨平台：Windows 用 `uv run` 启动 AstrBot 时，playwright 已装在 .venv；Linux 需额外装系统依赖。
 
@@ -22,19 +22,6 @@ from playwright.async_api import (
 
 from astrbot.api import logger
 
-_ASSETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets")
-
-# assets 目录的 file:// URL，供模板里 @font-face / <img> 引用本地资源。
-# 用绝对路径，避免 cwd 变化导致资源找不到。
-def _assets_url() -> str:
-    p = os.path.abspath(_ASSETS_DIR).replace("\\", "/")
-    # Windows 形如 F:/.../assets，前面补 file:///
-    if not p.startswith("/"):
-        p = "/" + p
-    return "file://" + p
-
-ASSETS_URL = _assets_url()
-
 
 class Renderer:
     """单例式渲染器。插件 initialize 时 start()，terminate 时 stop()。"""
@@ -50,9 +37,6 @@ class Renderer:
             trim_blocks=True,
             lstrip_blocks=True,
         )
-        # 基础上下文：每个模板都能拿到 assets 路径，无需手写 file:// 前缀
-        self._base_ctx = {"ASSETS": ASSETS_URL}
-
     async def start(self) -> None:
         if self._browser is not None:
             return
@@ -84,8 +68,7 @@ class Renderer:
     def _render_html(self, template_name: str, data: dict[str, Any]) -> str:
         """同步：jinja 渲染 HTML 字符串。"""
         tmpl = self._jinja.get_template(template_name)
-        ctx = {**self._base_ctx, **data}
-        return tmpl.render(**ctx)
+        return tmpl.render(**data)
 
     async def _screenshot(self, html: str, output_path: str, width: int) -> str:
         """异步：set_content 后按实际内容高度截图。"""

@@ -5,7 +5,7 @@
 
 设计：
 - 采集走 psutil (core/collector.py)
-- 渲染走本地 playwright (core/render.py)，字体 file:// 本地加载，零外部依赖
+- 渲染走本地 playwright (core/render.py)，字体由模板中的 CDN 加载
 - 渲染失败自动回退纯文本
 """
 import os

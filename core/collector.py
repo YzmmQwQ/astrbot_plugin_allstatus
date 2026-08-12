@@ -227,14 +227,11 @@ def get_status_data(
         "cpu": {
             "name": get_cpu_name(),
             "percent": overall_percent,
-            "physical": physical_cpus,
-            "logical": logical_cpus,
             "cores_text": cores_text,
             "cores_load": cores_load,
             "per_row": per_row,
             "frequency": cpu_freq,
             "temperature": round(cpu_temp, 1) if cpu_temp is not None else None,
-            "memory_info": memory_info or "",
         },
         "memory": {
             "used": bytes_to_gb(memory.used),
@@ -275,13 +272,4 @@ def format_status_text(data: dict) -> str:
         f"  负载: {load[0]} / {load[1]} / {load[2]}\n"
         f"  内存: {memory['used_human']} / {memory['total_human']} ({memory['percent']}%)\n\n"
         "存储空间\n" + disks
-    )
-
-
-def get_all_info_text(
-    disk_show_only: list[str] | None = None,
-    disk_exclude: list[str] | None = None,
-) -> str:
-    return format_status_text(
-        get_status_data(disk_show_only, disk_exclude)
     )
