@@ -192,11 +192,8 @@ def get_status_data(
     uptime_seconds = max(0, datetime.datetime.now().timestamp() - boot_ts)
     load = get_loadavg()
 
-    per_row = 8
-    if logical_cpus and logical_cpus <= 8:
-        per_row = logical_cpus
-    elif logical_cpus:
-        per_row = min(logical_cpus, 16)
+    # 与 status-agent/Worker 保持一致：CPU 网格固定分成两行。
+    per_row = max(1, (logical_cpus + 1) // 2)
 
     # CPU 大小核文本: 配置了 cpu_cores (如 "8:12") 显示 8P+12E, 否则显示 8C/16T
     has_hybrid = False
