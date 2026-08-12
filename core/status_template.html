@@ -165,6 +165,9 @@ body {
   margin: 12px 0 4px;
   overflow: hidden;
 }
+.cpu-card .progress-bar {
+  margin-bottom: 12px;
+}
 .progress-fill {
   height: 100%;
   background: var(--accent-positive);
@@ -176,9 +179,6 @@ body {
 .cpu-grid {
   display: grid;
   gap: 4px;
-  margin-top: 12px;
-  flex: 1;
-  align-content: center;
 }
 .cpu-core {
   aspect-ratio: 1;
@@ -336,7 +336,7 @@ body {
   <div class="section-label">RESOURCES</div>
   <div class="resources-grid">
     <!-- CPU -->
-    <div class="card">
+    <div class="card cpu-card">
       <div class="label">
         <span class="label-left">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
