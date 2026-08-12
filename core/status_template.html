@@ -3,9 +3,12 @@
 <head>
 <meta charset="utf-8">
 <style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @font-face {
   font-family: 'MiSans';
-  src: url('{{ ASSETS }}/fonts/MiSans VF.ttf') format('truetype-variations');
+  src: url('{{ ASSETS }}/fonts/MiSansVF.woff2') format('woff2-variations'),
+       url('{{ ASSETS }}/fonts/MiSans VF.ttf') format('truetype-variations');
   font-weight: 100 900;
   font-style: normal;
 }
@@ -31,7 +34,7 @@
 }
 
 body {
-  font-family: 'MiSans', sans-serif;
+  font-family: 'IBM Plex Sans', 'MiSans', sans-serif;
   font-weight: 500;
   background: var(--bg);
   color: var(--fg);
@@ -76,7 +79,7 @@ body {
   justify-content: space-between;
 }
 .site-title {
-  font-family: 'MiSans', sans-serif;
+  font-family: 'IBM Plex Sans', sans-serif;
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -87,7 +90,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  font-family: 'MiSans', sans-serif;
+  font-family: 'IBM Plex Sans', 'MiSans', sans-serif;
   font-size: 11px;
   font-weight: 500;
   color: var(--accent-positive);
@@ -148,14 +151,14 @@ body {
 }
 
 .big-value {
-  font-family: 'MiSans', sans-serif;
+  font-family: 'MiSans', 'IBM Plex Sans', sans-serif;
   font-size: 1.75rem;
   font-weight: 700;
   color: var(--fg);
   margin: 12px 0 0;
 }
 .mem-value {
-  font-family: 'MiSans', sans-serif;
+  font-family: 'MiSans', 'IBM Plex Sans', sans-serif;
   font-size: 1.3rem;
   font-weight: 700;
   color: var(--fg);
@@ -228,7 +231,7 @@ body {
 }
 .uptime-item { text-align: center; }
 .uptime-value {
-  font-family: 'MiSans', sans-serif;
+  font-family: 'MiSans', 'IBM Plex Sans', sans-serif;
   font-size: 1.25rem;
   font-weight: 600;
   color: var(--fg);
@@ -255,7 +258,7 @@ body {
 .system-item .label { margin-bottom: 8px; }
 .system-item b {
   display: block;
-  font-family: 'MiSans', sans-serif;
+  font-family: 'IBM Plex Sans', 'MiSans', sans-serif;
   font-size: 15px;
   font-weight: 600;
   color: var(--fg);
@@ -283,17 +286,20 @@ body {
   font-size: 10px;
   font-weight: 400;
   color: var(--fg-tertiary);
-  font-family: 'MiSans', sans-serif;
+  font-family: 'JetBrains Mono', monospace;
 }
 .disk-pct {
-  font-family: 'MiSans', sans-serif;
+  font-family: 'MiSans', 'IBM Plex Sans', sans-serif;
   font-size: 13px;
 }
 .disk-detail {
   margin-top: 8px;
   font-size: 11px;
   color: var(--fg-tertiary);
-  font-family: 'MiSans', sans-serif;
+  font-family: 'JetBrains Mono', monospace;
+}
+.disk-usage {
+  font-family: 'MiSans', 'IBM Plex Sans', sans-serif;
 }
 
 .muted { color: var(--fg-tertiary); font-size: 13px; }
@@ -314,6 +320,9 @@ body {
   color: var(--fg);
   border-bottom: 1px solid var(--stroke);
   text-decoration: none;
+}
+.last-update-label {
+  font-family: 'MiSans', 'IBM Plex Sans', sans-serif;
 }
 </style>
 </head>
@@ -421,7 +430,7 @@ body {
       <div class="progress-bar" style="margin-top:0">
         <div class="progress-fill {% if disk.percent >= 90 %}danger{% elif disk.percent >= 70 %}warning{% endif %}" style="width: {{ disk.percent }}%"></div>
       </div>
-      <div class="disk-detail">{{ disk.used }} GB / {{ disk.total }} GB</div>
+      <div class="disk-detail"><span class="disk-usage">{{ disk.used }} GB / {{ disk.total }} GB</span></div>
     </div>
     {% else %}
     <div class="muted">没有可用的磁盘信息</div>
@@ -431,7 +440,7 @@ body {
   <div class="divider"></div>
 
   <div class="footer">
-    <span>采集时间：{{ generated_at }}</span>
+    <span><span class="last-update-label">最后更新</span>：{{ generated_at }}</span>
     <span class="footer-credit">Made by <a href="https://yz-mm.top">YZMM</a></span>
   </div>
 </div>
