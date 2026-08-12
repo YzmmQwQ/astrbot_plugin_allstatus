@@ -97,11 +97,28 @@ class Renderer:
             await page.set_viewport_size({"width": width, "height": 800})
             # wait_until=networkidle：确保 file:// 字体加载完。本地资源极快。
             await page.set_content(html, wait_until="networkidle")
-            # document.fonts.ready 进一步保证 webfont 就绪
+            # document.fonts.ready 进一步保证 webfont 就绪，避免字体加载后高度变化。
             await page.evaluate("document.fonts.ready")
+            content_height = await page.evaluate(
+                """() => {
+                    const elements = Array.from(document.body.children)
+                        .filter((element) => {
+                            return getComputedStyle(element).position !== 'fixed';
+                        });
+                    return Math.ceil(Math.max(
+                        1,
+                        ...elements.map((element) =>
+                            element.getBoundingClientRect().bottom
+                        )
+                    ));
+                }"""
+            )
+            await page.set_viewport_size(
+                {"width": width, "height": max(1, int(content_height))}
+            )
             await page.screenshot(
                 path=output_path,
-                full_page=True,
+                full_page=False,
                 omit_background=False,
             )
             return output_path
