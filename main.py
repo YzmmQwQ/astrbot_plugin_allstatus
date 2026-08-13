@@ -10,6 +10,7 @@
 """
 import os
 import datetime
+import json
 
 from astrbot.api import logger
 from astrbot.api.event import AstrMessageEvent, filter
@@ -93,6 +94,30 @@ class AllStatusPlugin(Star):
             return {}
         return cfg
 
+    def _group_default_server(self, group_id: str | None) -> str:
+        """从 JSON 配置中读取当前群的默认 Minecraft 服务器地址。"""
+        if not group_id or not isinstance(self.config, dict):
+            return ""
+        minecraft = self.config.get("minecraft", {})
+        if not isinstance(minecraft, dict):
+            return ""
+        raw_mapping = minecraft.get("group_default_servers", "{}")
+        if isinstance(raw_mapping, dict):
+            mapping = raw_mapping
+        elif isinstance(raw_mapping, str):
+            try:
+                mapping = json.loads(raw_mapping)
+            except json.JSONDecodeError:
+                logger.warning("Minecraft 群默认服务器映射不是有效 JSON。")
+                return ""
+        else:
+            return ""
+        if not isinstance(mapping, dict):
+            logger.warning("Minecraft 群默认服务器映射必须是 JSON 对象。")
+            return ""
+        address = mapping.get(str(group_id), "")
+        return address.strip() if isinstance(address, str) else ""
+
     def _output_path(self) -> str:
         import tempfile
         d = self._data_dir or tempfile.gettempdir()
@@ -146,8 +171,13 @@ class AllStatusPlugin(Star):
         """查询 Minecraft Java 服务器状态。"""
         event.stop_event()
         if not server_addr.strip():
-            yield event.plain_result("用法：/mcs <服务器地址>[:端口]")
-            return
+            server_addr = self._group_default_server(event.get_group_id())
+            if not server_addr:
+                yield event.plain_result(
+                    "当前群未配置默认服务器。\n"
+                    "用法：/mcs <服务器地址>[:端口]"
+                )
+                return
 
         try:
             data = await query_server(server_addr)

@@ -30,5 +30,19 @@
         "default": []
       }
     }
+  },
+  "minecraft": {
+    "description": "Minecraft 服务器",
+    "type": "object",
+    "obvious_hint": true,
+    "hint": "群聊默认 Minecraft 服务器设置",
+    "items": {
+      "group_default_servers": {
+        "description": "群默认服务器映射",
+        "type": "text",
+        "hint": "JSON 对象，群号和地址都需双引号。例如：{\"123456789\": \"play.example.com:25566\"}",
+        "default": "{}"
+      }
+    }
   }
 }
