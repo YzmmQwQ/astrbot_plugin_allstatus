@@ -257,7 +257,13 @@ class AllStatusPlugin(Star):
     ) -> None:
         """保留最近 30 个成功查询的人数和延迟样本。"""
         samples = self._minecraft_history.setdefault(key, [])
-        samples.append({"players": int(data["online"]), "latency": int(data["latency"])})
+        samples.append(
+            {
+                "players": int(data["online"]),
+                "latency": int(data["latency"]),
+                "time": datetime.datetime.now().strftime("%H:%M"),
+            }
+        )
         del samples[:-30]
 
     @staticmethod
@@ -276,12 +282,20 @@ class AllStatusPlugin(Star):
 
     def _minecraft_charts(self, key: tuple[str, str]) -> dict[str, str | bool]:
         samples = self._minecraft_history.get(key, [])
+        player_values = [sample["players"] for sample in samples]
+        latency_values = [sample["latency"] for sample in samples]
         return {
             "has_history": len(samples) >= 2,
             "player_points": self._chart_points(samples, "players"),
             "latency_points": self._chart_points(samples, "latency"),
             "latest_players": str(samples[-1]["players"]) if samples else "--",
             "latest_latency": str(samples[-1]["latency"]) if samples else "--",
+            "players_max": str(max(player_values)) if player_values else "--",
+            "players_min": str(min(player_values)) if player_values else "--",
+            "latency_max": str(max(latency_values)) if latency_values else "--",
+            "latency_min": str(min(latency_values)) if latency_values else "--",
+            "start_time": str(samples[0].get("time", "--")) if samples else "--",
+            "end_time": str(samples[-1].get("time", "--")) if samples else "--",
         }
 
     def _output_path(self) -> str:
