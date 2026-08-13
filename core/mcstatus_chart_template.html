@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/misans@4.1.0/lib/Normal/MiSans-Regular.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/misans@4.1.0/lib/Normal/MiSans-Semibold.min.css">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+:root { --bg:#fafafa; --fill:#ebebeb; --stroke:#d6d6d6; --fg:#0a0a0a; --muted:#707070; --green:#00d992; --orange:#e56f00; }
+body { font-family:'IBM Plex Sans','MiSans',sans-serif; font-weight:500; background:var(--bg); color:var(--fg); line-height:1.25; -webkit-font-smoothing:antialiased; }
+.dots { position:fixed; inset:60px 0 0; background-image:radial-gradient(circle,var(--muted) 1px,transparent 1px); background-size:16px 16px; opacity:.4; pointer-events:none; }
+.top { position:relative; z-index:1; border-bottom:1px solid var(--stroke); background:var(--bg); }
+.top-inner,.container { width:760px; margin:0 auto; }
+.top-inner { padding:24px; display:flex; justify-content:space-between; align-items:center; }
+.title { font-size:14px; font-weight:600; letter-spacing:.02em; }
+.badge { display:flex; align-items:center; gap:7px; color:var(--muted); font-size:11px; letter-spacing:.05em; }
+.badge:before { content:""; width:8px; height:8px; background:var(--green); }
+.container { position:relative; z-index:1; padding:32px 24px 28px; }
+.section { color:var(--muted); font-size:12px; letter-spacing:.02em; margin-bottom:14px; }
+.section:before { content:'['; margin-right:6px; } .section:after { content:']'; margin-left:6px; }
+.card { border:1px solid var(--stroke); background:var(--bg); padding:20px; }
+.server { padding-bottom:18px; border-bottom:1px solid var(--stroke); }
+.server-name { font-family:'MiSans','IBM Plex Sans',sans-serif; font-size:20px; font-weight:600; overflow-wrap:anywhere; }
+.address { margin-top:5px; color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:10px; overflow-wrap:anywhere; }
+.chart { padding:20px 0; border-bottom:1px solid var(--stroke); }
+.chart:last-child { padding-bottom:0; border-bottom:none; }
+.chart-head { display:flex; justify-content:space-between; align-items:baseline; color:var(--muted); font-size:11px; letter-spacing:.05em; }
+.chart-head strong { color:var(--fg); font-family:'MiSans','IBM Plex Sans',sans-serif; font-size:16px; font-weight:600; letter-spacing:0; }
+.chart svg { display:block; width:100%; height:128px; margin-top:14px; overflow:visible; }
+.baseline,.guide { stroke:var(--stroke); stroke-width:1; vector-effect:non-scaling-stroke; }
+.guide { stroke-dasharray:2 3; }
+.line { fill:none; stroke:var(--green); stroke-width:2; vector-effect:non-scaling-stroke; }
+.line.latency { stroke:var(--orange); }
+.empty { padding:20px 0 0; color:var(--muted); font-size:12px; }
+.divider { height:1px; background:var(--stroke); margin:24px 0; }
+.footer { display:flex; justify-content:space-between; color:var(--muted); font-size:11px; letter-spacing:.05em; }
+.footer-time { font-family:'MiSans','IBM Plex Sans',sans-serif; }.footer-credit a { color:var(--fg); border-bottom:1px solid var(--stroke); text-decoration:none; }
+</style>
+</head>
+<body>
+<div class="top"><div class="top-inner"><span class="title">STATUS.RISHU.CFD</span><span class="badge">MONITORING</span></div></div>
+<div class="dots"></div>
+<main class="container">
+  <div class="section">MINECRAFT HISTORY</div>
+  <div class="card">
+    <div class="server"><div class="server-name">{{ server.name }}</div><div class="address">{{ server.address }}</div></div>
+    {% if charts.has_history %}
+    <div class="chart"><div class="chart-head"><span>PLAYERS</span><strong>{{ charts.latest_players }}</strong></div><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><line class="guide" x1="0" y1="25" x2="100" y2="25"></line><line class="guide" x1="0" y1="50" x2="100" y2="50"></line><line class="baseline" x1="0" y1="90" x2="100" y2="90"></line><polyline class="line" points="{{ charts.player_points }}"></polyline></svg></div>
+    <div class="chart"><div class="chart-head"><span>LATENCY</span><strong>{{ charts.latest_latency }} ms</strong></div><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><line class="guide" x1="0" y1="25" x2="100" y2="25"></line><line class="guide" x1="0" y1="50" x2="100" y2="50"></line><line class="baseline" x1="0" y1="90" x2="100" y2="90"></line><polyline class="line latency" points="{{ charts.latency_points }}"></polyline></svg></div>
+    {% else %}<div class="empty">正在收集监控数据，至少需要两个采样点。</div>{% endif %}
+  </div>
+  <div class="divider"></div>
+  <footer class="footer"><span><span class="footer-time">最后更新</span>：{{ generated_at }}</span><span class="footer-credit">MADE BY <a href="https://yz-mm.top">YZMM</a></span></footer>
+</main>
+</body>
+</html>

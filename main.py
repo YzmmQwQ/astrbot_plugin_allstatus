@@ -8,12 +8,14 @@
 - 渲染走本地 playwright (core/render.py)，字体由模板中的 CDN 加载
 - 渲染失败自动回退纯文本
 """
-import os
+import asyncio
 import datetime
 import json
+import os
 
 from astrbot.api import logger
 from astrbot.api.event import AstrMessageEvent, filter
+from astrbot.api.event.filter import PlatformAdapterType
 from astrbot.api.star import Context, Star, register
 
 from .core.collector import get_status_data, format_status_text
@@ -71,6 +73,10 @@ class AllStatusPlugin(Star):
                 logger.warning(f"获取插件数据目录失败，将使用临时目录: {e}")
 
         self._renderer = get_renderer()
+        self._minecraft_monitor_task: asyncio.Task | None = None
+        self._minecraft_monitor_state: dict[tuple[str, str], bool] = {}
+        self._minecraft_monitor_failures: dict[tuple[str, str], int] = {}
+        self._minecraft_history: dict[tuple[str, str], list[dict[str, int]]] = {}
 
     async def initialize(self):
         """插件加载时启动 playwright browser（长驻，避免每次截图重启）。"""
@@ -80,8 +86,21 @@ class AllStatusPlugin(Star):
         except Exception as e:
             logger.error(f"AllStatus 渲染器启动失败，将回退纯文本: {e}")
 
+        if self._minecraft_monitor_enabled():
+            self._minecraft_monitor_task = asyncio.create_task(
+                self._minecraft_monitor_loop()
+            )
+            logger.info("Minecraft 服务器监控已启动。")
+
     async def terminate(self):
         """插件卸载时关闭 browser。"""
+        if self._minecraft_monitor_task:
+            self._minecraft_monitor_task.cancel()
+            try:
+                await self._minecraft_monitor_task
+            except asyncio.CancelledError:
+                pass
+            self._minecraft_monitor_task = None
         try:
             await self._renderer.stop()
         except Exception as e:
@@ -117,6 +136,153 @@ class AllStatusPlugin(Star):
             return ""
         address = mapping.get(str(group_id), "")
         return address.strip() if isinstance(address, str) else ""
+
+    def _minecraft_cfg(self) -> dict:
+        cfg = self.config.get("minecraft", {}) if isinstance(self.config, dict) else {}
+        return cfg if isinstance(cfg, dict) else {}
+
+    def _group_default_servers(self) -> dict[str, str]:
+        """返回经过校验的群号到服务器地址映射。"""
+        raw_mapping = self._minecraft_cfg().get("group_default_servers", "{}")
+        if isinstance(raw_mapping, str):
+            try:
+                mapping = json.loads(raw_mapping)
+            except json.JSONDecodeError:
+                logger.warning("Minecraft 群默认服务器映射不是有效 JSON。")
+                return {}
+        elif isinstance(raw_mapping, dict):
+            mapping = raw_mapping
+        else:
+            return {}
+        if not isinstance(mapping, dict):
+            logger.warning("Minecraft 群默认服务器映射必须是 JSON 对象。")
+            return {}
+        return {
+            str(group_id): address.strip()
+            for group_id, address in mapping.items()
+            if str(group_id).isdigit() and isinstance(address, str) and address.strip()
+        }
+
+    def _minecraft_monitor_enabled(self) -> bool:
+        return bool(self._minecraft_cfg().get("enable_monitor", False))
+
+    def _minecraft_monitor_interval(self) -> int:
+        interval = self._minecraft_cfg().get("monitor_interval_seconds", 60)
+        try:
+            return max(30, int(interval))
+        except (TypeError, ValueError):
+            return 60
+
+    async def _send_monitor_message(self, group_id: str, message: str) -> None:
+        platform = self.context.get_platform(PlatformAdapterType.AIOCQHTTP)
+        if platform is None:
+            logger.error("未找到 AIOCQHTTP 平台适配器，无法发送 Minecraft 监控通知。")
+            return
+        try:
+            await platform.get_client().api.call_action(
+                "send_group_msg",
+                group_id=int(group_id),
+                message=message,
+            )
+        except Exception as e:
+            logger.error(
+                f"发送 Minecraft 监控通知到群 {group_id} 失败: "
+                f"{type(e).__name__}: {e!r}"
+            )
+
+    async def _minecraft_monitor_loop(self) -> None:
+        """监控各群默认服务器，仅在离线或恢复时推送。"""
+        while True:
+            try:
+                servers = self._group_default_servers()
+                active_keys = {(group_id, address) for group_id, address in servers.items()}
+                self._minecraft_monitor_state = {
+                    key: value
+                    for key, value in self._minecraft_monitor_state.items()
+                    if key in active_keys
+                }
+                self._minecraft_monitor_failures = {
+                    key: value
+                    for key, value in self._minecraft_monitor_failures.items()
+                    if key in active_keys
+                }
+                self._minecraft_history = {
+                    key: value
+                    for key, value in self._minecraft_history.items()
+                    if key in active_keys
+                }
+
+                for group_id, address in servers.items():
+                    key = (group_id, address)
+                    try:
+                        data = await query_server(address)
+                    except Exception as e:
+                        failures = self._minecraft_monitor_failures.get(key, 0) + 1
+                        self._minecraft_monitor_failures[key] = failures
+                        if failures < 2:
+                            logger.warning(
+                                f"Minecraft 监控查询失败 ({address})，"
+                                f"将在下次确认: {type(e).__name__}: {e!r}"
+                            )
+                            continue
+                        online = False
+                    else:
+                        self._minecraft_monitor_failures[key] = 0
+                        online = True
+                        self._record_minecraft_sample(key, data)
+
+                    previous = self._minecraft_monitor_state.get(key)
+                    self._minecraft_monitor_state[key] = online
+                    if previous is None or previous == online:
+                        continue
+                    if online:
+                        message = (
+                            f"Minecraft 服务器已恢复在线\n"
+                            f"地址: {address}\n"
+                            f"玩家: {data['online']} / {data['maximum']}"
+                        )
+                    else:
+                        message = f"Minecraft 服务器已离线\n地址: {address}"
+                    await self._send_monitor_message(group_id, message)
+            except asyncio.CancelledError:
+                raise
+            except Exception as e:
+                logger.error(
+                    f"Minecraft 服务器监控循环异常: {type(e).__name__}: {e!r}"
+                )
+            await asyncio.sleep(self._minecraft_monitor_interval())
+
+    def _record_minecraft_sample(
+        self, key: tuple[str, str], data: dict
+    ) -> None:
+        """保留最近 30 个成功查询的人数和延迟样本。"""
+        samples = self._minecraft_history.setdefault(key, [])
+        samples.append({"players": int(data["online"]), "latency": int(data["latency"])})
+        del samples[:-30]
+
+    @staticmethod
+    def _chart_points(samples: list[dict[str, int]], field: str) -> str:
+        """将样本归一化为 SVG 折线坐标。"""
+        values = [sample[field] for sample in samples]
+        if len(values) < 2:
+            return ""
+        low, high = min(values), max(values)
+        span = high - low or 1
+        count = len(values) - 1
+        return " ".join(
+            f"{index / count * 100:.1f},{90 - (value - low) / span * 80:.1f}"
+            for index, value in enumerate(values)
+        )
+
+    def _minecraft_charts(self, key: tuple[str, str]) -> dict[str, str | bool]:
+        samples = self._minecraft_history.get(key, [])
+        return {
+            "has_history": len(samples) >= 2,
+            "player_points": self._chart_points(samples, "players"),
+            "latency_points": self._chart_points(samples, "latency"),
+            "latest_players": str(samples[-1]["players"]) if samples else "--",
+            "latest_latency": str(samples[-1]["latency"]) if samples else "--",
+        }
 
     def _output_path(self) -> str:
         import tempfile
@@ -174,11 +340,10 @@ class AllStatusPlugin(Star):
             server_addr = self._group_default_server(event.get_group_id())
             if not server_addr:
                 yield event.plain_result(
-                    "当前群未配置默认服务器。\n"
-                    "用法：/mcs <服务器地址>[:端口]"
+                    "当前群未配置 Minecraft 服务器。\n"
+                    "用法：/mcs [服务器地址]"
                 )
                 return
-
         try:
             data = await query_server(server_addr)
         except Exception as e:
@@ -225,3 +390,38 @@ class AllStatusPlugin(Star):
             yield event.plain_result(
                 f"无法连接 Minecraft 服务器：{data['address']}\n{data['error']}"
             )
+
+    @filter.command("mcsc")
+    async def mcsc(self, event: AstrMessageEvent, command_text: str = ""):
+        """显示本群已绑定 Minecraft 服务器的监控历史。"""
+        event.stop_event()
+        if command_text.strip():
+            yield event.plain_result("/mcsc 不接受参数，只能查询本群已配置的服务器。")
+            return
+        group_id = event.get_group_id()
+        server_addr = self._group_default_server(group_id)
+        if not server_addr:
+            yield event.plain_result("当前群未配置 Minecraft 服务器。")
+            return
+        try:
+            out = self._output_path().replace(
+                "allstatus_status.png", "allstatus_mcsc.png"
+            )
+            await self._renderer.render(
+                template_name="mcstatus_chart_template.html",
+                data={
+                    "server": {"name": "Minecraft Server", "address": server_addr},
+                    "charts": self._minecraft_charts((str(group_id), server_addr)),
+                    "generated_at": datetime.datetime.now().strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    ),
+                },
+                output_path=out,
+                width=760,
+            )
+            if os.path.exists(out):
+                yield event.image_result(out)
+                return
+        except Exception as e:
+            logger.error(f"Minecraft 监控图表渲染失败: {e}")
+        yield event.plain_result("监控图表渲染失败。")

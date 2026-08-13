@@ -42,6 +42,18 @@
         "type": "text",
         "hint": "JSON 对象，群号和地址都需双引号。例如：{\"123456789\": \"play.example.com:25566\"}",
         "default": "{}"
+      },
+      "enable_monitor": {
+        "description": "启用服务器监控",
+        "type": "bool",
+        "hint": "定时检查每个群的默认服务器，仅在离线或恢复时向对应 QQ 群发送通知",
+        "default": false
+      },
+      "monitor_interval_seconds": {
+        "description": "监控间隔（秒）",
+        "type": "int",
+        "hint": "每轮检查间隔，最小 30 秒",
+        "default": 60
       }
     }
   }
