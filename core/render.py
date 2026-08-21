@@ -34,7 +34,7 @@ class Renderer:
         self.page_timeout_ms = 10_000
         self.font_timeout_ms = 3_000
         self.font_css_url = (
-            "https://fonts.googleapis.com/css2?"
+            "https://fonts.loli.net/css2?"
             "family=IBM+Plex+Sans:wght@400;500;600;700&"
             "family=JetBrains+Mono:wght@400;500&display=swap"
         )
@@ -111,7 +111,11 @@ class Renderer:
                     fonts_ready = await asyncio.wait_for(
                         page.evaluate(
                             """async () => {
-                                const families = ["IBM Plex Sans", "JetBrains Mono"];
+                                const families = [
+                                    "IBM Plex Sans",
+                                    "JetBrains Mono",
+                                    "MiSans",
+                                ];
                                 await Promise.all(families.map((family) =>
                                     document.fonts.load(`500 16px "${family}"`)
                                 ));

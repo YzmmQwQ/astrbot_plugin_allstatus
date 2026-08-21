@@ -20,7 +20,7 @@
       "font_css_url": {
         "description": "字体 CSS 地址",
         "type": "string",
-        "hint": "可填写 Google Fonts 或大陆代理地址；留空使用 Google Fonts 默认地址",
+        "hint": "可填写 Google Fonts 或大陆代理地址；留空使用 fonts.loli.net（会同时代理字体文件）",
         "default": ""
       }
     }
