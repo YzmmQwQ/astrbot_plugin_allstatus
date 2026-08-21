@@ -78,10 +78,13 @@ class Renderer:
         page = await self._context.new_page()
         try:
             await page.set_viewport_size({"width": width, "height": 800})
-            # wait_until=networkidle：确保 file:// 字体加载完。本地资源极快。
-            await page.set_content(html, wait_until="networkidle")
-            # document.fonts.ready 进一步保证 webfont 就绪，避免字体加载后高度变化。
-            await page.evaluate("document.fonts.ready")
+            # 外部字体/CDN 请求可能长期挂起；networkidle 会让整次渲染超时。
+            # DOM 就绪即可开始排版，再至多等 3 秒让可用字体加载完成。
+            await page.set_content(html, wait_until="domcontentloaded", timeout=10_000)
+            try:
+                await page.evaluate("document.fonts.ready", timeout=3_000)
+            except Exception:
+                logger.warning("Web 字体未在 3 秒内加载完成，使用当前可用字体出图。")
             content_height = await page.evaluate(
                 """() => {
                     const elements = Array.from(document.body.children)
