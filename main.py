@@ -1,17 +1,7 @@
-"""AstrBot 全状态聚合插件 - 本机状态监控。
-
-命令：
-    /status   → 渲染本机状态卡片图片
-
-设计：
-- 采集走 psutil (core/collector.py)
-- 渲染走本地 playwright (core/render.py)，字体由模板中的 CDN 加载
-- 渲染失败自动回退纯文本
-"""
+"""AstrBot 全状态聚合插件 - 纯文字状态查询。"""
 import asyncio
 import datetime
 import json
-import os
 
 from astrbot.api import logger
 from astrbot.api.event import AstrMessageEvent, filter
@@ -20,14 +10,6 @@ from astrbot.api.star import Context, Star, register
 
 from .core.collector import get_status_data, format_status_text
 from .core.mcstatus import format_server_status, query_server
-from .core.render import get_renderer
-
-try:
-    from astrbot.api.star import StarTools
-    _HAS_STAR_TOOLS = True
-except ImportError:
-    _HAS_STAR_TOOLS = False
-
 
 def _uptime_units(seconds: int) -> list[dict]:
     """把秒数拆成 3 个 (值, 单位) 用于 UPTIME 网格，自动选最大三档。"""
@@ -55,7 +37,7 @@ def _uptime_units(seconds: int) -> list[dict]:
 @register(
     "astrbot_plugin_allstatus",
     "rishu",
-    "本机状态监控：CPU/内存/磁盘/温度，playwright 本地渲染图片",
+    "本机和 Minecraft 服务器状态查询，纯文字输出",
     "0.1.0",
 )
 class AllStatusPlugin(Star):
@@ -63,43 +45,12 @@ class AllStatusPlugin(Star):
         super().__init__(context)
         self.config = config or {}
 
-        # 插件数据目录（存渲染出的临时图片）
-        self._data_dir = None
-        if _HAS_STAR_TOOLS:
-            try:
-                self._data_dir = str(StarTools.get_data_dir(self.name))
-                os.makedirs(self._data_dir, exist_ok=True)
-            except Exception as e:
-                logger.warning(f"获取插件数据目录失败，将使用临时目录: {e}")
-
-        self._renderer = get_renderer()
-        render_cfg = self.config.get("render", {})
-        if not isinstance(render_cfg, dict):
-            render_cfg = {}
-        try:
-            self._renderer.configure(
-                render_cfg.get("page_timeout_seconds", 10),
-                render_cfg.get("font_timeout_seconds", 3),
-                render_cfg.get("font_css_url", ""),
-                render_cfg.get("misans_css_url", ""),
-                render_cfg.get("misans_semibold_css_url", ""),
-            )
-        except (TypeError, ValueError):
-            logger.warning("渲染超时配置无效，使用默认值 10 秒 / 3 秒。")
-            self._renderer.configure()
         self._minecraft_monitor_task: asyncio.Task | None = None
         self._minecraft_monitor_state: dict[tuple[str, str], bool] = {}
         self._minecraft_monitor_failures: dict[tuple[str, str], int] = {}
         self._minecraft_history: dict[tuple[str, str], list[dict[str, int]]] = {}
 
     async def initialize(self):
-        """插件加载时启动 playwright browser（长驻，避免每次截图重启）。"""
-        try:
-            await self._renderer.start()
-            logger.info("AllStatus 渲染器已就绪。")
-        except Exception as e:
-            logger.error(f"AllStatus 渲染器启动失败，将回退纯文本: {e}")
-
         if self._minecraft_monitor_enabled():
             self._minecraft_monitor_task = asyncio.create_task(
                 self._minecraft_monitor_loop()
@@ -107,7 +58,6 @@ class AllStatusPlugin(Star):
             logger.info("Minecraft 服务器监控已启动。")
 
     async def terminate(self):
-        """插件卸载时关闭 browser。"""
         if self._minecraft_monitor_task:
             self._minecraft_monitor_task.cancel()
             try:
@@ -115,10 +65,6 @@ class AllStatusPlugin(Star):
             except asyncio.CancelledError:
                 pass
             self._minecraft_monitor_task = None
-        try:
-            await self._renderer.stop()
-        except Exception as e:
-            logger.warning(f"关闭渲染器时出错: {e}")
 
     def _monitor_cfg(self) -> dict:
         """读取 monitor 配置段，容错缺字段。"""
@@ -280,28 +226,12 @@ class AllStatusPlugin(Star):
         )
         del samples[:-30]
 
-    @staticmethod
-    def _chart_points(samples: list[dict[str, int]], field: str) -> str:
-        """将样本归一化为 SVG 折线坐标。"""
-        values = [sample[field] for sample in samples]
-        if len(values) < 2:
-            return ""
-        low, high = min(values), max(values)
-        span = high - low or 1
-        count = len(values) - 1
-        return " ".join(
-            f"{index / count * 100:.1f},{90 - (value - low) / span * 80:.1f}"
-            for index, value in enumerate(values)
-        )
-
     def _minecraft_charts(self, key: tuple[str, str]) -> dict[str, str | bool]:
         samples = self._minecraft_history.get(key, [])
         player_values = [sample["players"] for sample in samples]
         latency_values = [sample["latency"] for sample in samples]
         return {
             "has_history": len(samples) >= 2,
-            "player_points": self._chart_points(samples, "players"),
-            "latency_points": self._chart_points(samples, "latency"),
             "latest_players": str(samples[-1]["players"]) if samples else "--",
             "latest_latency": str(samples[-1]["latency"]) if samples else "--",
             "players_max": str(max(player_values)) if player_values else "--",
@@ -312,14 +242,9 @@ class AllStatusPlugin(Star):
             "end_time": str(samples[-1].get("time", "--")) if samples else "--",
         }
 
-    def _output_path(self) -> str:
-        import tempfile
-        d = self._data_dir or tempfile.gettempdir()
-        return os.path.join(d, "allstatus_status.png")
-
     @filter.command("status")
     async def status(self, event: AstrMessageEvent):
-        """获取本机系统状态（CPU/内存/磁盘/温度），渲染成图片发送。"""
+        """获取本机系统状态。"""
         event.stop_event()
 
         cfg = self._monitor_cfg()
@@ -340,24 +265,6 @@ class AllStatusPlugin(Star):
         )
         data["uptime_units"] = _uptime_units(data["system"]["uptime_seconds"])
 
-        # 尝试图片渲染
-        try:
-            out = self._output_path()
-            await self._renderer.render(
-                template_name="status_template.html",
-                data=data,
-                output_path=out,
-                width=760,
-            )
-            if os.path.exists(out):
-                yield event.image_result(out)
-                return
-            # 渲染返回但文件不存在，走回退
-            logger.warning("渲染未生成图片文件，回退纯文本。")
-        except Exception as e:
-            logger.error(f"状态图片渲染失败，回退纯文本: {e}")
-
-        # 回退：纯文本
         yield event.plain_result(format_status_text(data))
 
     @filter.command("mcs")
@@ -394,24 +301,6 @@ class AllStatusPlugin(Star):
                 round(data["online"] / max(data["maximum"], 1) * 100, 1),
             )
             data["player_text"] = ", ".join(data["players"]) or "暂无玩家在线"
-        render_data = {
-            "server": data,
-            "generated_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        }
-        try:
-            out = self._output_path().replace("allstatus_status.png", "allstatus_mcs.png")
-            await self._renderer.render(
-                template_name="mcstatus_template.html",
-                data=render_data,
-                output_path=out,
-                width=760,
-            )
-            if os.path.exists(out):
-                yield event.image_result(out)
-                return
-        except Exception as e:
-            logger.error(f"Minecraft 状态图片渲染失败，回退纯文本: {e}")
-
         if data["online_state"]:
             yield event.plain_result(format_server_status(data))
         else:
@@ -431,25 +320,16 @@ class AllStatusPlugin(Star):
         if not server_addr:
             yield event.plain_result("当前群未配置 Minecraft 服务器。")
             return
-        try:
-            out = self._output_path().replace(
-                "allstatus_status.png", "allstatus_mcsc.png"
+        charts = self._minecraft_charts((str(group_id), server_addr))
+        if not charts["has_history"]:
+            yield event.plain_result(
+                f"Minecraft 服务器监控\n地址: {server_addr}\n"
+                "有效样本不足，至少需要两次监控数据。"
             )
-            await self._renderer.render(
-                template_name="mcstatus_chart_template.html",
-                data={
-                    "server": {"name": "Minecraft Server", "address": server_addr},
-                    "charts": self._minecraft_charts((str(group_id), server_addr)),
-                    "generated_at": datetime.datetime.now().strftime(
-                        "%Y-%m-%d %H:%M:%S"
-                    ),
-                },
-                output_path=out,
-                width=760,
-            )
-            if os.path.exists(out):
-                yield event.image_result(out)
-                return
-        except Exception as e:
-            logger.error(f"Minecraft 监控图表渲染失败: {e}")
-        yield event.plain_result("监控图表渲染失败。")
+            return
+        yield event.plain_result(
+            f"Minecraft 服务器监控\n地址: {server_addr}\n"
+            f"采样时间: {charts['start_time']} - {charts['end_time']}\n"
+            f"在线人数: 当前 {charts['latest_players']}，范围 {charts['players_min']} - {charts['players_max']}\n"
+            f"延迟: 当前 {charts['latest_latency']} ms，范围 {charts['latency_min']} - {charts['latency_max']} ms"
+        )

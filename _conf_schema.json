@@ -1,42 +1,4 @@
 {
-  "render": {
-    "description": "图片渲染",
-    "type": "object",
-    "obvious_hint": true,
-    "hint": "Playwright 页面和外部字体资源的超时时间",
-    "items": {
-      "page_timeout_seconds": {
-        "description": "页面加载超时（秒）",
-        "type": "int",
-        "hint": "等待 HTML 页面就绪的最长时间，范围 1-60 秒",
-        "default": 10
-      },
-      "font_timeout_seconds": {
-        "description": "字体等待超时（秒）",
-        "type": "int",
-        "hint": "等待外部字体加载的最长时间，范围 0-30 秒；0 表示不等待",
-        "default": 3
-      },
-      "font_css_url": {
-        "description": "字体 CSS 地址",
-        "type": "string",
-        "hint": "可填写 Google Fonts 或大陆代理地址；留空使用 fonts.loli.net（会同时代理字体文件）",
-        "default": ""
-      },
-      "misans_css_url": {
-        "description": "MiSans Regular CSS 地址",
-        "type": "string",
-        "hint": "留空使用 jsDelivr 的 MiSans Regular 压缩 CSS",
-        "default": ""
-      },
-      "misans_semibold_css_url": {
-        "description": "MiSans Semibold CSS 地址",
-        "type": "string",
-        "hint": "留空使用 jsDelivr 的 MiSans Semibold 压缩 CSS",
-        "default": ""
-      }
-    }
-  },
   "monitor": {
     "description": "本机状态监控",
     "type": "object",
