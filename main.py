@@ -80,6 +80,7 @@ class AllStatusPlugin(Star):
             self._renderer.configure(
                 render_cfg.get("page_timeout_seconds", 10),
                 render_cfg.get("font_timeout_seconds", 3),
+                render_cfg.get("font_css_url", ""),
             )
         except (TypeError, ValueError):
             logger.warning("渲染超时配置无效，使用默认值 10 秒 / 3 秒。")

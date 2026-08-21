@@ -33,17 +33,31 @@ class Renderer:
         self._lock = asyncio.Lock()
         self.page_timeout_ms = 10_000
         self.font_timeout_ms = 3_000
+        self.font_css_url = (
+            "https://fonts.googleapis.com/css2?"
+            "family=IBM+Plex+Sans:wght@400;500;600;700&"
+            "family=JetBrains+Mono:wght@400;500&display=swap"
+        )
         self._jinja = Environment(
             loader=FileSystemLoader(os.path.dirname(os.path.abspath(__file__))),
             autoescape=select_autoescape(["html", "xml"]),
             trim_blocks=True,
             lstrip_blocks=True,
         )
+        self._jinja.globals["font_css_url"] = self.font_css_url
 
-    def configure(self, page_timeout_seconds: int = 10, font_timeout_seconds: int = 3) -> None:
-        """配置外部资源加载超时，单位为秒。"""
+    def configure(
+        self,
+        page_timeout_seconds: int = 10,
+        font_timeout_seconds: int = 3,
+        font_css_url: str | None = None,
+    ) -> None:
+        """配置外部字体地址和资源加载超时，超时单位为秒。"""
         self.page_timeout_ms = max(1, min(60, int(page_timeout_seconds))) * 1000
         self.font_timeout_ms = max(0, min(30, int(font_timeout_seconds))) * 1000
+        if isinstance(font_css_url, str) and font_css_url.strip():
+            self.font_css_url = font_css_url.strip()
+        self._jinja.globals["font_css_url"] = self.font_css_url
     async def start(self) -> None:
         if self._browser is not None:
             return
@@ -94,7 +108,10 @@ class Renderer:
             )
             if self.font_timeout_ms > 0:
                 try:
-                    await page.evaluate("document.fonts.ready", timeout=self.font_timeout_ms)
+                    await asyncio.wait_for(
+                        page.evaluate("document.fonts.ready"),
+                        timeout=self.font_timeout_ms / 1000,
+                    )
                 except Exception:
                     logger.warning(
                         "Web 字体未在配置的超时时间内加载完成，使用当前可用字体出图。"

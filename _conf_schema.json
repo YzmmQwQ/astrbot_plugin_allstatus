@@ -16,6 +16,12 @@
         "type": "int",
         "hint": "等待外部字体加载的最长时间，范围 0-30 秒；0 表示不等待",
         "default": 3
+      },
+      "font_css_url": {
+        "description": "字体 CSS 地址",
+        "type": "string",
+        "hint": "可填写 Google Fonts 或大陆代理地址；留空使用 Google Fonts 默认地址",
+        "default": ""
       }
     }
   },
