@@ -22,6 +22,18 @@
         "type": "string",
         "hint": "可填写 Google Fonts 或大陆代理地址；留空使用 fonts.loli.net（会同时代理字体文件）",
         "default": ""
+      },
+      "misans_css_url": {
+        "description": "MiSans Regular CSS 地址",
+        "type": "string",
+        "hint": "留空使用 jsDelivr 的 MiSans Regular 压缩 CSS",
+        "default": ""
+      },
+      "misans_semibold_css_url": {
+        "description": "MiSans Semibold CSS 地址",
+        "type": "string",
+        "hint": "留空使用 jsDelivr 的 MiSans Semibold 压缩 CSS",
+        "default": ""
       }
     }
   },

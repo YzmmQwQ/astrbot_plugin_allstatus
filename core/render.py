@@ -38,6 +38,8 @@ class Renderer:
             "family=IBM+Plex+Sans:wght@400;500;600;700&"
             "family=JetBrains+Mono:wght@400;500&display=swap"
         )
+        self.misans_css_url = "https://cdn.jsdelivr.net/npm/misans@4.1.0/lib/Normal/MiSans-Regular.min.css"
+        self.misans_semibold_css_url = "https://cdn.jsdelivr.net/npm/misans@4.1.0/lib/Normal/MiSans-Semibold.min.css"
         self._jinja = Environment(
             loader=FileSystemLoader(os.path.dirname(os.path.abspath(__file__))),
             autoescape=select_autoescape(["html", "xml"]),
@@ -45,19 +47,29 @@ class Renderer:
             lstrip_blocks=True,
         )
         self._jinja.globals["font_css_url"] = self.font_css_url
+        self._jinja.globals["misans_css_url"] = self.misans_css_url
+        self._jinja.globals["misans_semibold_css_url"] = self.misans_semibold_css_url
 
     def configure(
         self,
         page_timeout_seconds: int = 10,
         font_timeout_seconds: int = 3,
         font_css_url: str | None = None,
+        misans_css_url: str | None = None,
+        misans_semibold_css_url: str | None = None,
     ) -> None:
         """配置外部字体地址和资源加载超时，超时单位为秒。"""
         self.page_timeout_ms = max(1, min(60, int(page_timeout_seconds))) * 1000
         self.font_timeout_ms = max(0, min(30, int(font_timeout_seconds))) * 1000
         if isinstance(font_css_url, str) and font_css_url.strip():
             self.font_css_url = font_css_url.strip()
+        if isinstance(misans_css_url, str) and misans_css_url.strip():
+            self.misans_css_url = misans_css_url.strip()
+        if isinstance(misans_semibold_css_url, str) and misans_semibold_css_url.strip():
+            self.misans_semibold_css_url = misans_semibold_css_url.strip()
         self._jinja.globals["font_css_url"] = self.font_css_url
+        self._jinja.globals["misans_css_url"] = self.misans_css_url
+        self._jinja.globals["misans_semibold_css_url"] = self.misans_semibold_css_url
     async def start(self) -> None:
         if self._browser is not None:
             return
