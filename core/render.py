@@ -108,10 +108,29 @@ class Renderer:
             )
             if self.font_timeout_ms > 0:
                 try:
-                    await asyncio.wait_for(
-                        page.evaluate("document.fonts.ready"),
+                    fonts_ready = await asyncio.wait_for(
+                        page.evaluate(
+                            """async () => {
+                                const families = ["IBM Plex Sans", "JetBrains Mono"];
+                                await Promise.all(families.map((family) =>
+                                    document.fonts.load(`500 16px "${family}"`)
+                                ));
+                                const deadline = Date.now() + 1000;
+                                while (Date.now() < deadline) {
+                                    if (families.every((family) =>
+                                        document.fonts.check(`500 16px "${family}"`)
+                                    )) return true;
+                                    await new Promise((resolve) => setTimeout(resolve, 50));
+                                }
+                                return false;
+                            }"""
+                        ),
                         timeout=self.font_timeout_ms / 1000,
                     )
+                    if not fonts_ready:
+                        logger.warning(
+                            "目标 Web 字体未成功加载，使用当前可用字体出图。"
+                        )
                 except Exception:
                     logger.warning(
                         "Web 字体未在配置的超时时间内加载完成，使用当前可用字体出图。"
