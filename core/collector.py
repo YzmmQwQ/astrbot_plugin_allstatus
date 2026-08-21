@@ -1,8 +1,4 @@
-"""本机系统状态采集器。基于 astrbot_plugin_status 的 collector 扩展：
-- 增加 CPU 单核占用 (coresLoad) 与每行格数 (perRow)，用于渲染 CPU 核心方阵
-- 增加系统负载 load (1/5/15 分钟，Linux/Windows 均尽力采集)
-- 增加磁盘黑白名单过滤
-"""
+"""本机系统状态采集器。"""
 import datetime
 import os
 import platform
@@ -139,7 +135,6 @@ def get_status_data(
     disk_show_only: list[str] | None = None,
     disk_exclude: list[str] | None = None,
     cpu_cores: str | None = None,
-    memory_info: str | None = None,
 ) -> dict:
     memory = psutil.virtual_memory()
     boot_ts = psutil.boot_time()
@@ -147,17 +142,7 @@ def get_status_data(
     logical_cpus = psutil.cpu_count(logical=True) or 0
     physical_cpus = psutil.cpu_count(logical=False) or logical_cpus
 
-    # 先取一次 percent，预热(否则首次返回 0)
-    psutil.cpu_percent(interval=None)
-    # 单核占用: percpu=True
-    cores_load: list[float] = []
-    try:
-        cores_load = [
-            round(x, 1) for x in psutil.cpu_percent(interval=1, percpu=True)
-        ]
-    except Exception:
-        pass
-    overall_percent = round(psutil.cpu_percent(interval=None), 1)
+    overall_percent = round(psutil.cpu_percent(interval=1), 1)
 
     disks = []
     for partition in psutil.disk_partitions():
@@ -192,9 +177,6 @@ def get_status_data(
     uptime_seconds = max(0, datetime.datetime.now().timestamp() - boot_ts)
     load = get_loadavg()
 
-    # 与 status-agent/Worker 保持一致：CPU 网格固定分成两行。
-    per_row = max(1, (logical_cpus + 1) // 2)
-
     # CPU 大小核文本: 配置了 cpu_cores (如 "8:12") 显示 8P+12E, 否则显示 8C/16T
     has_hybrid = False
     perf_cores = 0
@@ -215,31 +197,24 @@ def get_status_data(
     )
 
     return {
-        "generated_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "system": {
             "name": platform.system(),
             "release": platform.release(),
             "machine": platform.machine(),
             "boot_time": boot_time.strftime("%Y-%m-%d %H:%M:%S"),
             "uptime": format_uptime(uptime_seconds),
-            "uptime_seconds": int(uptime_seconds),
         },
         "cpu": {
             "name": get_cpu_name(),
             "percent": overall_percent,
             "cores_text": cores_text,
-            "cores_load": cores_load,
-            "per_row": per_row,
             "frequency": cpu_freq,
             "temperature": round(cpu_temp, 1) if cpu_temp is not None else None,
         },
         "memory": {
-            "used": bytes_to_gb(memory.used),
-            "total": bytes_to_gb(memory.total),
             "used_human": bytes_to_human(memory.used),
             "total_human": bytes_to_human(memory.total),
             "percent": round(memory.percent, 1),
-            "info": memory_info or "",
         },
         "load": load,
         "disks": disks,

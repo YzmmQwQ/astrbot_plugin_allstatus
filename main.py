@@ -11,29 +11,6 @@ from astrbot.api.star import Context, Star, register
 from .core.collector import get_status_data, format_status_text
 from .core.mcstatus import format_server_status, query_server
 
-def _uptime_units(seconds: int) -> list[dict]:
-    """把秒数拆成 3 个 (值, 单位) 用于 UPTIME 网格，自动选最大三档。"""
-    total = max(0, int(seconds))
-    months = total // (86400 * 30)
-    days = (total % (86400 * 30)) // 86400
-    hours = (total % 86400) // 3600
-    minutes = (total % 3600) // 60
-    units = [
-        {"value": months, "label": "MO"},
-        {"value": days, "label": "D"},
-        {"value": hours, "label": "H"},
-        {"value": minutes, "label": "M"},
-    ]
-    start = 0
-    for i, u in enumerate(units):
-        if u["value"] > 0:
-            start = i
-            break
-    if start + 3 > len(units):
-        start = len(units) - 3
-    return units[start:start + 3]
-
-
 @register(
     "astrbot_plugin_allstatus",
     "rishu",
@@ -252,7 +229,6 @@ class AllStatusPlugin(Star):
         # None 表示使用默认过滤；显式传入 [] 表示关闭过滤。
         disk_exclude = cfg.get("disk_filter", ["boot", "efi", "swap"])
         cpu_cores = cfg.get("cpu_cores", "") or ""
-        memory_info = cfg.get("memory_info", "") or ""
 
         # 采集（psutil 的 cpu_percent(interval=1) 是阻塞调用，丢线程池）
         import asyncio
@@ -261,9 +237,7 @@ class AllStatusPlugin(Star):
             disk_show_only=disk_show_only,
             disk_exclude=disk_exclude,
             cpu_cores=cpu_cores,
-            memory_info=memory_info,
         )
-        data["uptime_units"] = _uptime_units(data["system"]["uptime_seconds"])
 
         yield event.plain_result(format_status_text(data))
 
@@ -295,12 +269,6 @@ class AllStatusPlugin(Star):
         else:
             data["online_state"] = True
 
-        if data["online_state"]:
-            data["player_percent"] = min(
-                100,
-                round(data["online"] / max(data["maximum"], 1) * 100, 1),
-            )
-            data["player_text"] = ", ".join(data["players"]) or "暂无玩家在线"
         if data["online_state"]:
             yield event.plain_result(format_server_status(data))
         else:

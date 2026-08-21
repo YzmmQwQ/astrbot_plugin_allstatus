@@ -11,12 +11,6 @@
         "hint": "格式 大核数:小核数,如 8:12。留空则显示 物理核C/线程T 形式",
         "default": ""
       },
-      "memory_info": {
-        "description": "内存信息",
-        "type": "string",
-        "hint": "自定义内存标签,如 DDR5 32GBx2通道 5600MT/s。留空则只显示总量",
-        "default": ""
-      },
       "disk_filter": {
         "description": "磁盘过滤关键词",
         "type": "list",
