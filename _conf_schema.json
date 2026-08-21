@@ -1,4 +1,24 @@
 {
+  "render": {
+    "description": "图片渲染",
+    "type": "object",
+    "obvious_hint": true,
+    "hint": "Playwright 页面和外部字体资源的超时时间",
+    "items": {
+      "page_timeout_seconds": {
+        "description": "页面加载超时（秒）",
+        "type": "int",
+        "hint": "等待 HTML 页面就绪的最长时间，范围 1-60 秒",
+        "default": 10
+      },
+      "font_timeout_seconds": {
+        "description": "字体等待超时（秒）",
+        "type": "int",
+        "hint": "等待外部字体加载的最长时间，范围 0-30 秒；0 表示不等待",
+        "default": 3
+      }
+    }
+  },
   "monitor": {
     "description": "本机状态监控",
     "type": "object",

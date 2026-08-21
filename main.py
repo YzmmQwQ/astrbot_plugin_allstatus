@@ -73,6 +73,17 @@ class AllStatusPlugin(Star):
                 logger.warning(f"获取插件数据目录失败，将使用临时目录: {e}")
 
         self._renderer = get_renderer()
+        render_cfg = self.config.get("render", {})
+        if not isinstance(render_cfg, dict):
+            render_cfg = {}
+        try:
+            self._renderer.configure(
+                render_cfg.get("page_timeout_seconds", 10),
+                render_cfg.get("font_timeout_seconds", 3),
+            )
+        except (TypeError, ValueError):
+            logger.warning("渲染超时配置无效，使用默认值 10 秒 / 3 秒。")
+            self._renderer.configure()
         self._minecraft_monitor_task: asyncio.Task | None = None
         self._minecraft_monitor_state: dict[tuple[str, str], bool] = {}
         self._minecraft_monitor_failures: dict[tuple[str, str], int] = {}

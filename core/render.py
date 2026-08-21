@@ -31,12 +31,19 @@ class Renderer:
         self._browser: Browser | None = None
         self._context: BrowserContext | None = None
         self._lock = asyncio.Lock()
+        self.page_timeout_ms = 10_000
+        self.font_timeout_ms = 3_000
         self._jinja = Environment(
             loader=FileSystemLoader(os.path.dirname(os.path.abspath(__file__))),
             autoescape=select_autoescape(["html", "xml"]),
             trim_blocks=True,
             lstrip_blocks=True,
         )
+
+    def configure(self, page_timeout_seconds: int = 10, font_timeout_seconds: int = 3) -> None:
+        """配置外部资源加载超时，单位为秒。"""
+        self.page_timeout_ms = max(1, min(60, int(page_timeout_seconds))) * 1000
+        self.font_timeout_ms = max(0, min(30, int(font_timeout_seconds))) * 1000
     async def start(self) -> None:
         if self._browser is not None:
             return
@@ -80,11 +87,18 @@ class Renderer:
             await page.set_viewport_size({"width": width, "height": 800})
             # 外部字体/CDN 请求可能长期挂起；networkidle 会让整次渲染超时。
             # DOM 就绪即可开始排版，再至多等 3 秒让可用字体加载完成。
-            await page.set_content(html, wait_until="domcontentloaded", timeout=10_000)
-            try:
-                await page.evaluate("document.fonts.ready", timeout=3_000)
-            except Exception:
-                logger.warning("Web 字体未在 3 秒内加载完成，使用当前可用字体出图。")
+            await page.set_content(
+                html,
+                wait_until="domcontentloaded",
+                timeout=self.page_timeout_ms,
+            )
+            if self.font_timeout_ms > 0:
+                try:
+                    await page.evaluate("document.fonts.ready", timeout=self.font_timeout_ms)
+                except Exception:
+                    logger.warning(
+                        "Web 字体未在配置的超时时间内加载完成，使用当前可用字体出图。"
+                    )
             content_height = await page.evaluate(
                 """() => {
                     const elements = Array.from(document.body.children)
